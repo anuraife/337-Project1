@@ -45,6 +45,13 @@ def pre_ceremony():
     print("Pre-ceremony processing complete.")
     return
 
+def read_data(year):
+    file = 'gg' + str(year) + '.json'
+    with open(file, 'r') as f:
+        tweets = json.load(f)
+    tweet_arr = [tweet['text'] for tweet in tweets]
+    return tweet_arr
+
 def main():
     '''This function calls your program. Typing "python gg_api.py"
     will run this function. Or, in the interpreter, import gg_api
