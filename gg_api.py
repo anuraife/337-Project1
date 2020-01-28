@@ -87,10 +87,16 @@ def pre_ceremony():
 
 def read_data(year):
     file = 'gg' + str(year) + '.json'
-    with open(file, 'r') as f:
-        tweets = json.load(f)
-    tweet_arr = [tweet['text'] for tweet in tweets]
+    try:
+        with open(file, 'r') as f:
+            tweets = json.load(f)
+        tweet_arr = [tweet['text'] for tweet in tweets]
+    except ValueError:
+        with open(file, "rb") as f:
+            tweets = [json.loads(line) for line in f]
+            tweet_arr = [tweet['text'] for tweet in tweets]
     return tweet_arr
+
 
 def main():
     '''This function calls your program. Typing "python gg_api.py"
@@ -98,7 +104,7 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    pprint.pprint(get_hosts(2013))
+    pprint.pprint(get_hosts(2020))
     return
 
 if __name__ == '__main__':
