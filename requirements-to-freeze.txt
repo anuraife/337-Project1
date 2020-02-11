@@ -1,1 +1,8 @@
+json
+collections
+re
 spacy
+operator
+requests
+lxml
+bs4
