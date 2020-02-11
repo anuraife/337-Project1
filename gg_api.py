@@ -71,24 +71,21 @@ worldMovies = []
 
 
 def get_movie_titles(year):
-    countries = ["American", "Argentine", "Australian", "British", "Canadian", "Chinese", "French", "Russian",
-                 "South_Korean"]
-    for country in countries:
-        website_url = requests.get(
-            'https://en.wikipedia.org/wiki/List_of_%s_films_of_%d' % (country, int(year) - 1)).text
-        soup = BeautifulSoup(website_url, 'lxml')
-        tables = soup.findAll('table', {'class': 'wikitable sortable'})
-        for table in tables:
-            for tr in table.find_all('tr'):
-                tds = tr.find_all('td')[:2]
-                if not tds:
-                    continue
-                else:
-                    try:
-                        title = [td.text.strip() for td in tds[0]]
-                    except AttributeError:
-                        title = [td.text.strip() for td in tds[1]]
-                worldMovies.append(title[0])
+    website_url = requests.get(
+        'https://en.wikipedia.org/wiki/List_of_American_films_of_%d' % (int(year) - 1)).text
+    soup = BeautifulSoup(website_url, 'lxml')
+    tables = soup.findAll('table', {'class': 'wikitable sortable'})
+    for table in tables:
+        for tr in table.find_all('tr'):
+            tds = tr.find_all('td')[:2]
+            if not tds:
+                continue
+            else:
+                try:
+                    title = [td.text.strip() for td in tds[0]]
+                except AttributeError:
+                    title = [td.text.strip() for td in tds[1]]
+            worldMovies.append(title[0])
 
 
 def most_frequent(list, num):
@@ -153,14 +150,12 @@ def get_carpet(year):
                         list.append(people[0] + " " + people[1])
                         people = people[2:]
                     if any([word in tweet for word in good]):
-                        print(person, "good")
                         for person in list:
                             if person not in carpet_good:
                                 carpet_good[person] = 1
                             else:
                                 carpet_good[person] += 1
                     if any([word in tweet for word in bad]):
-                        print(person, "bad")
                         for person in list:
                             if person not in carpet_bad:
                                 carpet_bad[person] = 1
@@ -179,37 +174,37 @@ def get_carpet(year):
             "most controversial": controversial[1]}
 
 
-def get_jokes(year):
-    content = ["was", "about"]
-    jokesters = {}
-    jokes = []
-    if not tweet_arr:
-        clean_data(year)
-    for tweet in tweet_arr:
-        if "joke" in tweet:
-            ind = tweet.index("joke")
-            for word in content:
-                if word in tweet[ind + 4:]:
-                    ind2 = tweet[ind + 4:].index(word)
-                    cont = tweet[ind + 4:][ind2 + len(word):]
-                    t = sp(tweet)
-                    for ent in t.ents:
-                        if ent.label_ == "PERSON":
-                            if ent.text.lower() not in jokesters:
-                                jokesters[ent.text.lower()] = [cont]
-                            else:
-                                jokesters[ent.text.lower()].append(cont)
-    funniest = ""
-    most_jokes = 0
-    for jokester in jokesters.keys():
-        if len(jokesters[jokester]) > 6:
-            best_joke = most_frequent(jokesters[jokester], 1)
-            jokes.append(jokester + "'s best joke was " + best_joke)
-            if len(jokesters[jokester]) > most_jokes:
-                funniest = jokester
-                most_jokes = len(jokesters[jokester])
-
-    return jokes, funniest
+# def get_jokes(year):
+#     content = ["was", "about"]
+#     jokesters = {}
+#     jokes = []
+#     if not tweet_arr:
+#         clean_data(year)
+#     for tweet in tweet_arr:
+#         if "joke" in tweet:
+#             ind = tweet.index("joke")
+#             for word in content:
+#                 if word in tweet[ind + 4:]:
+#                     ind2 = tweet[ind + 4:].index(word)
+#                     cont = tweet[ind + 4:][ind2 + len(word):]
+#                     t = sp(tweet)
+#                     for ent in t.ents:
+#                         if ent.label_ == "PERSON":
+#                             if ent.text.lower() not in jokesters:
+#                                 jokesters[ent.text.lower()] = [cont]
+#                             else:
+#                                 jokesters[ent.text.lower()].append(cont)
+#     funniest = ""
+#     most_jokes = 0
+#     for jokester in jokesters.keys():
+#         if len(jokesters[jokester]) > 6:
+#             best_joke = most_frequent(jokesters[jokester], 1)
+#             jokes.append(jokester + "'s best joke was " + best_joke[0][0])
+#             if len(jokesters[jokester]) > most_jokes:
+#                 funniest = jokester
+#                 most_jokes = len(jokesters[jokester])
+#
+#     return jokes, funniest
 
 
 def get_hosts(year):
@@ -788,19 +783,20 @@ def json_data(year):
     return json_return
 
 
-def human_readable(year):
-    json_format = json_data(year)
-    print('Host: ' + json_format['Host'])
-    for award in awards_split:
-        award_results = json_format[award]
-        print('Award: ' + award)
-        print('Presenters: ' + award_results['Presenters'])
-        print('Nominees: ' + award_results['Nominees'])
-        print('Winner: ' + award_results['Winner'])
-    dressed = get_carpet(year)
-    print('Best dressed: ' + dressed['best dressed'])
-    print('Worst dressed: ' + dressed['worst dressed'])
-    print('Most controversial: ' + dressed['most controversial'])
+def human_readable(yr):
+    for year in [2013, 2015, yr]:
+        json_format = json_data(year)
+        print('Host: ' + json_format['Host'])
+        for award in awards_split:
+            award_results = json_format[award]
+            print('Award: ' + award)
+            print('Presenters: ' + award_results['Presenters'])
+            print('Nominees: ' + award_results['Nominees'])
+            print('Winner: ' + award_results['Winner'])
+        dressed = get_carpet(year)
+        print('Best dressed: ' + dressed['best dressed'])
+        print('Worst dressed: ' + dressed['worst dressed'])
+        print('Most controversial: ' + dressed['most controversial'])
 
 
 def main():
@@ -809,10 +805,7 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    pprint.pprint(get_presenters(2020))
-    # pprint.pprint(get_nominees(2020))
-    # pprint.pprint(get_jokes(2020))
-    return
+    return human_readable(sys.argv)
 
 
 if __name__ == '__main__':
