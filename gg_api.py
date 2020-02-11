@@ -10,6 +10,7 @@ import time
 import requests
 from lxml import html
 from bs4 import BeautifulSoup
+import sys
 
 sp = spacy.load('en_core_web_sm')
 nlp = spacy.load("en_core_web_md")
