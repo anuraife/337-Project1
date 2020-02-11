@@ -446,7 +446,8 @@ def get_winners(year):
     poss_winners = {}
     winners = {}
     search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
-              "taking", "took", 'gets', 'takes']
+              "taking", "took", 'gets', 'takes', 'got', 'congratulations', 'congrats', 'nominee', 'up for', 'going to',
+              'win', 'thanks']
     search_words = ['wins', 'won', 'winning', "accepts", "accepted", 'gets', 'takes']
     search_words2 = ["awarded", "goes", "went", "took", "taking", "going"]
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
@@ -499,12 +500,11 @@ def get_winners(year):
                         helper(award[0], tweet)
 
     for award in poss_winners.keys():
-        print(most_frequent(poss_winners[award], 5))
+        # print(most_frequent(poss_winners[award], 5))
         winners[award] = most_frequent(poss_winners[award], 1)[0][0]
-        print(winners[award])
+        # print(winners[award])
 
     global_winners = winners
-
     return winners
 
 def get_presenters(year):
