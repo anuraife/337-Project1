@@ -3,10 +3,6 @@ import json
 from collections import Counter
 import re
 import pprint
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.corpus import words
 import spacy
 import operator
 import string
@@ -14,8 +10,6 @@ import time
 
 sp = spacy.load('en_core_web_sm')
 nlp = spacy.load("en_core_web_md")
-# nltk.download('punkt')
-# nltk.download('words')
 
 OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama',
                         'best performance by an actress in a motion picture - drama',
@@ -167,7 +161,7 @@ def get_hosts(year):
     of this function or what it returns.'''
     Dict = {}
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
     for tweet in tweet_arr:
         if re.search('(next year|Next year|last year|Last year)', tweet) is None:
             if re.search('(host|hosts|hosting|hosted)', tweet) is not None:
@@ -234,7 +228,7 @@ def get_awards(year):
                      "red carpet", "story", "recipient", "braid", "tan", "appearance", "line", "seen", "hypocrisy",
                      "friend"]
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
 
     def helper(chunk_text, chunk_list, tweet):
         if chunk_list:
@@ -366,10 +360,10 @@ def get_nominees(year):
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
               "GoldenGlobes%s" % str(year)]
     if not awards_split:
-        awards_split = handle_awards(year)
+        handle_awards(year)
 
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
 
     def clean_tweet(tweet):
         tweet = tweet.split()
@@ -455,7 +449,7 @@ def get_winners(year):
               "GoldenGlobes%s" % str(year)]
 
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
 
     def helper(award, tweet):
         t = sp(tweet)
