@@ -487,7 +487,7 @@ def get_winners(year):
     if not worldMovies:
         get_movie_titles(year)
 
-    print(worldMovies)
+    # print(worldMovies)
 
     def helper(award, tweet):
         if "actor" in award or "actress" in award or "director" in award or "award" in award:
@@ -694,6 +694,37 @@ def clean_data(year):
         tweet_arr.append(s.join(words))
     return
 
+def json_data(year):
+    json_return = {}
+    clean_data(year)
+    handle_awards(year)
+    get_awards(year)
+    hosts = get_hosts(year)
+    json_return['Host'] = hosts
+    winners = get_winners(year)
+    nominees = get_nominees(year)
+    presenters = get_presenters(year)
+    for award in awards_split:
+        award_dict = {}
+        award_dict['Presenters'] = presenters[award]
+        award_dict['Nominees'] = nominees[award]
+        award_dict['Winner'] = winners[award]
+        json_return[award] = award_dict
+    return json_data
+
+def human_readable(year):
+    json_format = json_data(year)
+    print('Host: ' + json_format['Host'])
+    for award in awards_split:
+        award_results = json_format[award]
+        print('Award: ' + award)
+        print('Presenters: ' + award_results['Presenters'])
+        print('Nominees: ' + award_results['Nominees'])
+        print('Winner: ' + award_results['Winner'])
+    dressed = get_carpet(year)
+    print('Best dressed: ' + dressed['best dressed'])
+    print('Worst dressed: ' + dressed['worst dressed'])
+    print('Most controversial: ' + dressed['most controversial'])
 
 def main():
     '''This function calls your program. Typing "python gg_api.py"
