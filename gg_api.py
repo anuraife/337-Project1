@@ -400,34 +400,18 @@ def get_nominees(year):
     if not worldMovies:
         get_movie_titles(year)
 
-    # def clean_tweet(tweet, award):
-    #     tweet = tweet.split()
-    #     t = [word for word in tweet.lower() if re.match(r'http\S+', word) is None
-    #          and (re.match(r'[A-Z]', word[0]) or word in [",", "and"]) and word not in remove
-    #          and word not in award]
-    #     return " ".join(t)
-    #
-    # def helper2(poss_nominee):
-    #     all_nominees = poss_nominee.split(",")
-    #     last_split = all_nominees[-1].split("and")
-    #     if len(last_split) > 1:
-    #         all_nominees.remove(all_nominees[-1])
-    #         for nom in last_split:
-    #             all_nominees.append(nom)
-    #     return all_nominees
-
     def helper(award, tweet):
         if "actor" in award or "actress" in award or "director" in award or "award" in award:
             t = sp(tweet)
             for ent in t.ents:
                 if ent.label_ == "PERSON":
                     if award not in nominees:
-                        poss_nominees[award] = [ent.text]
+                        poss_nominees[award] = [ent.text.lower()]
                     else:
-                        poss_nominees[award].append(ent.text)
+                        poss_nominees[award].append(ent.text.lower())
         else:
             for movie in worldMovies:
-                if re.search(movie.lower(), tweet):
+                if re.search(movie.lower(), tweet.lower()):
                     if award not in poss_nominees:
                         poss_nominees[award] = movie.lower()
                     else:
@@ -495,24 +479,24 @@ def get_winners(year):
             for ent in t.ents:
                 if ent.label_ == "PERSON":
                     if award not in poss_winners:
-                        poss_winners[award] = [ent.text]
+                        poss_winners[award] = [ent.text.lower()]
                     else:
-                        poss_winners[award].append(ent.text)
+                        poss_winners[award].append(ent.text.lower())
         elif "motion picture" in award:
             for movie in worldMovies:
-                if re.search(movie, tweet):
+                if re.search(movie.lower(), tweet.lower()):
                     if award not in poss_winners:
-                        poss_winners[award] = [movie]
+                        poss_winners[award] = [movie.lower()]
                     else:
-                        poss_winners[award].append(movie)
+                        poss_winners[award].append(movie.lower())
         else:
             t = sp(tweet)
             for ent in t.ents:
                 if ent.label_ == "GPE":
                     if award not in poss_winners:
-                        poss_winners[award] = [ent.text]
+                        poss_winners[award] = [ent.text.lower()]
                     else:
-                        poss_winners[award].append(ent.text)
+                        poss_winners[award].append(ent.text.lower())
 
     for tweet in winner_tweets:
         for award in awards_split:
