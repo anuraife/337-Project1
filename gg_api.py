@@ -467,7 +467,8 @@ def get_winners(year):
     Do NOT change the name of this function or what it returns.'''
     poss_winners = {}
     search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
-              "taking", "took"]
+          "taking", "took", 'gets', 'takes', 'got', 'congratulations', 'congrats', 'nominee', 'up for', 'going to',
+          'win', 'thanks', 'winner', 'going']
     search_words = ['wins', 'won', 'winning']
     search_words2 = ["awarded", "goes", "went", "took", "taking", "going"]
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
@@ -504,6 +505,14 @@ def get_winners(year):
                         poss_winners[award] = [movie]
                     else:
                         poss_winners[award].append(movie)
+        else:
+            t = sp(tweet)
+            for ent in t.ents:
+                if ent.label_ == "GPE":
+                    if award not in poss_winners:
+                        poss_winners[award] = [ent.text]
+                    else:
+                        poss_winners[award].append(ent.text)
 
     for tweet in winner_tweets:
         for award in awards_split:
@@ -540,20 +549,20 @@ def get_presenters(year):
     GlobalDict = {} #for award corresponding to presenters
     tweet_arr = read_data(year)
     #tweet_arr = ["Priyanka Chopra and Nick Jonas at the 77th Annual Golden Globe Awards present the award for Best TV series for a musical or comedy"]
-    #'best television series - musical or comedy', 
+    #'best television series - musical or comedy',
     my_test_awards = ['best motion picture - drama', 'best motion picture - musical or comedy', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best performance by an actress in a motion picture - musical or comedy', 'best performance by an actor in a motion picture - musical or comedy', 'best performance by an actress in a supporting role in any motion picture', 'best performance by an actor in a supporting role in any motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best motion picture - animated', 'best motion picture - foreign language', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best television series - musical or comedy', 'best television limited series or motion picture made for television', 'best performance by an actress in a limited series or a motion picture made for television', 'best performance by an actor in a limited series or a motion picture made for television', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best performance by an actress in a television series - musical or comedy', 'best performance by an actor in a television series - musical or comedy', 'best performance by an actress in a supporting role in a series, limited series or motion picture made for television', 'best performance by an actor in a supporting role in a series, limited series or motion picture made for television', 'cecil b. demille award']
     television_syn = ["television", "tv", "TV" "tv series", "TV series", "television series"]
     motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
     presenters = {}
     remove = ["or", "-", "by", "an", "in", "a"]
     #Dict = {}
-    with open("myfile2.txt", "w", encoding='utf-8') as f: 
+    with open("myfile2.txt", "w", encoding='utf-8') as f:
         for award in my_test_awards:
             Dict = {}
             for tweet in tweet_arr: #tweet in tweet_arr
                 #check any (tv, television series) before all
                 #tweet = tweet.lower()
-                split_award = award.split() #check for this array if television is in this array-> then add other words 
+                split_award = award.split() #check for this array if television is in this array-> then add other words
                 if "best" in split_award:
                     split_award.remove("best")
                 for word in remove:
@@ -582,7 +591,7 @@ def get_presenters(year):
                                 #print(tweet)
                                 if "best" in tweet or "Best" in tweet:
                                     if all([kw in tweet for kw in split_award]) or all([kw in tweet for kw in extra_split]): #includes television
-                                        #print(tweet) 
+                                        #print(tweet)
                                         t = sp(tweet)
                                         for person in t.ents:
                                             if person.label_ == "PERSON":
@@ -602,7 +611,7 @@ def get_presenters(year):
                                 #print("hello")
                                 #print(split_award)
                                 if all([kw in tweet for kw in split_award]) or all([kw in tweet for kw in extra_split]): #includes television
-                                    #print(tweet) 
+                                    #print(tweet)
                                     t = sp(tweet)
                                     #print(t)
                                     for person in t.ents:
@@ -620,9 +629,9 @@ def get_presenters(year):
                     #print(Dict)
             #print(Dict)
 
-        
-    #then insert this into 
-    #then run this thing for each award 
+
+    #then insert this into
+    #then run this thing for each award
             GlobalDict[award]= sorted_dict
             presenters = GlobalDict
     f.close()
@@ -631,15 +640,15 @@ def get_presenters(year):
     #for "presented to"-> get the index and exclude all the other words"
 
     return GlobalDict
-    
+
 
     #Map of the problem-> 1. go through list of awards using for loop 2. then get tweets with keywords for presenters 3. then match award name or 80% of the award names or replace movie with film, etc 3. and then use POS tagger to get proper nouns with names and then see what's most common
-    # for a in 
+    # for a in
 
     #return presenters
 
     #Map of the problem-> 1. go through list of awards using for loop 2. then get tweets with keywords for presenters 3. then match award name or 80% of the award names or replace movie with film, etc 3. and then use POS tagger to get proper nouns with names and then see what's most common
-    # for a in 
+    # for a in
 
     #return presenters
 
