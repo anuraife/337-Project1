@@ -585,13 +585,17 @@ def get_presenters(year):
                       'best performance by an actress in a supporting role in a series, limited series or motion picture made for television',
                       'best performance by an actor in a supporting role in a series, limited series or motion picture made for television',
                       'cecil b. demille award']
+    #tweet_arr = ["Priyanka Chopra and Nick Jonas at the 77th Annual Golden Globe Awards present the award for Best TV series for a musical or comedy"]
+    #tweet_arr = ["TAYLOR SWIFT and AMY POEHLER presenting the Best Animated Motion Picture at the 77th Golden Globe Awards"]
+    #'best television series - musical or comedy', 
     television_syn = ["television", "tv", "TV" "tv series", "TV series", "television series"]
     motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
+    cecil_award = ["Cecil B. DeMille", "Cecil", "cecil"]
     presenters = {}
     remove = ["or", "-", "by", "an", "in", "a"]
-    # Dict = {}
-    with open("myfile2.txt", "w", encoding='utf-8') as f:
-        for award in my_test_awards:
+    #Dict = {}
+    with open("myfile2.txt", "w", encoding='utf-8') as f: 
+        for award in OFFICIAL_AWARDS_1819:
             Dict = {}
             for tweet in tweet_arr:  # tweet in tweet_arr
                 # check any (tv, television series) before all
@@ -628,10 +632,10 @@ def get_presenters(year):
                                             [kw in tweet for kw in extra_split]):  # includes television
                                         # print(tweet)
                                         t = sp(tweet)
+                                        #print(tweet)
                                         for person in t.ents:
-                                            if person.label_ == "PERSON":
-                                                if person.text not in ["Golden Globes", "goldenglobes", "GoldenGlobes",
-                                                                       "Golden globes", "golden globes"]:
+                                            if person.label_ == "PERSON" or "ORG":
+                                                if person.text.lower() not in ["Golden Globes", "goldenglobes", "GoldenGlobes", "Golden globes", "golden globes", "deserved", "lincoln", "lincolnmovie", "ramy"]:
                                                     poss_host = person.text.lower()
                                                     if poss_host not in Dict:
                                                         Dict[poss_host] = 1
@@ -649,26 +653,74 @@ def get_presenters(year):
                                 if all([kw in tweet for kw in split_award]) or all(
                                         [kw in tweet for kw in extra_split]):  # includes television
                                     # print(tweet)
+                                #sprint(tweet) #it's good here!
+                                #print("hello")
+                                #print(split_award)
+                                    #print(split_award) 
+                                    #if award == "best motion picture - drama":
                                     t = sp(tweet)
                                     # print(t)
                                     for person in t.ents:
                                         # print(person)
                                         if person.label_ == "PERSON":
-                                            if person.text not in ["Golden Globes", "goldenglobes", "GoldenGlobes",
-                                                                   "Golden globes", "golden globes"]:
+                                            #if award == "best motion picture - drama":
+                                                #print(person)
+                                            #if award == "best motion picture - drama":
+                                                #print(person)
+                                            if person.text.lower() not in ["goldenglobes", "golden globes", "lincolnmovie", "lincoln", "argo"]:
+                                                #if award == "best motion picture - drama":
+                                                    #print(person)
+                                                poss_host = person.text.lower()
+                                                if poss_host not in Dict:
+                                                    Dict[poss_host] = 1
+                                                else:
+                                                    Dict[poss_host] += 1
+                        if "cecil" in award:
+                            #print(tweet)
+                            split_award.remove("award")
+                            if any([kw in tweet for kw in cecil_award]):
+                            #sprint(tweet) #it's good here!
+                            #print("hello")
+                            #print(split_award)
+                                if all([kw in tweet for kw in split_award]) or all([kw in tweet for kw in extra_split]): #includes television
+                                    print(split_award) 
+                                #if award == "best motion picture - drama":
+                                    t = sp(tweet)
+                                #print(t)
+                                    for person in t.ents:
+                                    #print(person)
+                                        if person.label_ == "PERSON":
+                                        #if award == "best motion picture - drama":
+                                            #print(person)
+                                        #if award == "best motion picture - drama":
+                                            #print(person)
+                                            if person.text.lower() not in ["goldenglobes", "golden globes", "lincolnmovie", "lincoln", "argo"]:
+                                            #if award == "best motion picture - drama":
+                                                #print(person)
                                                 poss_host = person.text.lower()
                                                 if poss_host not in Dict:
                                                     Dict[poss_host] = 1
                                                 else:
                                                     Dict[poss_host] += 1
 
-                sorted_dict = sorted([key for (key, value) in Dict.items()])[-2:]
+
+                #sorted_dict = sorted([key for (key, value) in Dict.items()])[-2:]
                 # if award == "best television series - musical or comedy":
                 # print(Dict)
             # print(Dict)
 
-    GlobalDict[award] = sorted_dict
-    presenters = GlobalDict
+    #GlobalDict[award] = sorted_dict
+    #presenters = GlobalDict
+                sorted_dict = sorted([[value, key] for (key,value) in Dict.items()])[-2:]
+                #if award == "best motion picture - drama":
+                    #print(Dict)
+            #print(Dict)
+
+        
+    #then insert this into 
+    #then run this thing for each award 
+            GlobalDict[award]= [presenter[1] for presenter in sorted_dict]
+            presenters = GlobalDict
     f.close()
 
     return GlobalDict
@@ -757,6 +809,9 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
+    pprint.pprint(get_presenters(2020))
+    # pprint.pprint(get_nominees(2020))
+    # pprint.pprint(get_jokes(2020))
     return
 
 
