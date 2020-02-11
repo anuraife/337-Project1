@@ -71,7 +71,6 @@ worldMovies = []
 
 
 def get_movie_titles(year):
-    worldMovies = []
     website_url = requests.get('https://en.wikipedia.org/wiki/List_of_American_films_of_%d' % (int(year) - 1)).text
     soup = BeautifulSoup(website_url, 'lxml')
     tables = soup.findAll('table', {'class': 'wikitable sortable'})
@@ -85,8 +84,7 @@ def get_movie_titles(year):
                     title = [td.text.strip() for td in tds[0]]
                 except AttributeError:
                     title = [td.text.strip() for td in tds[1]]
-            worldMovies.append(title)
-    return worldMovies
+            worldMovies.append(title[0])
 
 
 def most_frequent(list, num):
@@ -393,60 +391,47 @@ def get_nominees(year):
     search_words = ["beating", "beats out", "beats", "beat out", "beat", "compete", "competing"]
     poss_nominees = {}
     nominees = {}
-    remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
-              "GoldenGlobes%s" % str(year)]
     if not awards_split:
         handle_awards(year)
 
     if not tweet_arr:
         clean_data(year)
 
-    def clean_tweet(tweet, award):
-        tweet = tweet.split()
-        t = [word for word in tweet.lower() if re.match(r'http\S+', word) is None
-             and (re.match(r'[A-Z]', word[0]) or word in [",", "and"]) and word not in remove
-             and word not in award]
-        return " ".join(t)
+    if not worldMovies:
+        get_movie_titles(year)
 
-    def helper2(poss_nominee):
-        all_nominees = poss_nominee.split(",")
-        last_split = all_nominees[-1].split("and")
-        if len(last_split) > 1:
-            all_nominees.remove(all_nominees[-1])
-            for nom in last_split:
-                all_nominees.append(nom)
-        return all_nominees
+    # def clean_tweet(tweet, award):
+    #     tweet = tweet.split()
+    #     t = [word for word in tweet.lower() if re.match(r'http\S+', word) is None
+    #          and (re.match(r'[A-Z]', word[0]) or word in [",", "and"]) and word not in remove
+    #          and word not in award]
+    #     return " ".join(t)
+    #
+    # def helper2(poss_nominee):
+    #     all_nominees = poss_nominee.split(",")
+    #     last_split = all_nominees[-1].split("and")
+    #     if len(last_split) > 1:
+    #         all_nominees.remove(all_nominees[-1])
+    #         for nom in last_split:
+    #             all_nominees.append(nom)
+    #     return all_nominees
 
     def helper(award, tweet):
         if "actor" in award or "actress" in award or "director" in award or "award" in award:
             t = sp(tweet)
             for ent in t.ents:
                 if ent.label_ == "PERSON":
-                    if ent.text.lower() not in ["golden globes", "goldenglobes", "goldenglobe", "goldenglobeawards",
-                                                "golden globe awards"]:
-                        if award not in nominees:
-                            poss_nominees[award] = [ent.text]
-                        else:
-                            poss_nominees[award].append(ent.text)
+                    if award not in nominees:
+                        poss_nominees[award] = [ent.text]
+                    else:
+                        poss_nominees[award].append(ent.text)
         else:
-            for word in search_words:
-                if word in tweet:
-                    try:
-                        ind = tweet.index(word)
-                        nominee = helper2(clean_tweet(tweet[ind + len(word):], award))
-                        if award not in poss_nominees:
-                            poss_nominees[award] = [nominee[0]]
-                            if len(nominee) > 1:
-                                for nom in nominee:
-                                    if len(nom.split()) >= 1:
-                                        poss_nominees[award].append(nom)
-                        else:
-                            for nom in nominee:
-                                poss_nominees[award].append(nom)
-                        break
-                    except IndexError:
-                        pass
-
+            for movie in worldMovies:
+                if re.search(movie.lower(), tweet):
+                    if award not in poss_nominees:
+                        poss_nominees[award] = movie.lower()
+                    else:
+                        poss_nominees[award].append(movie.lower())
     for tweet in tweet_arr:
         if any([word in tweet for word in search]):
             for award in awards_split:
@@ -715,10 +700,10 @@ def main():
     # clean_data(2020)
     # handle_awards(2020)
     # get_awards(2020)
-   # pprint.pprint(get_winners(2020))
+    pprint.pprint(get_winners(2020))
    # pprint.pprint(get_nominees(2020))
     #pprint.pprint(get_carpet(2020))
-    pprint.pprint(get_movie_titles(2020))
+   # pprint.pprint(get_movie_titles(2020))
     return
 
 
