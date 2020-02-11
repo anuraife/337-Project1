@@ -3,19 +3,14 @@ import json
 from collections import Counter
 import re
 import pprint
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.corpus import words
 import spacy
 import operator
 import string
 import time
+import requests
 
 sp = spacy.load('en_core_web_sm')
 nlp = spacy.load("en_core_web_md")
-# nltk.download('punkt')
-# nltk.download('words')
 
 OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama',
                         'best performance by an actress in a motion picture - drama',
@@ -70,6 +65,7 @@ awards_split = []
 television_syn = ["television", "tv", "Television", "TV", ]
 motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
 global_winners = {}
+
 
 def most_frequent(list, num):
     occurence_count = Counter(list)
@@ -148,7 +144,7 @@ def get_jokes(year):
     with open("jokes.txt", "w", encoding="utf-8") as f:
         for tweet in tweet_arr:
             if any([word in tweet for word in search]):
-                t= sp(tweet)
+                t = sp(tweet)
                 f.write(tweet)
                 for chunk in t.noun_chunks:
                     f.write("\n")
@@ -167,7 +163,7 @@ def get_hosts(year):
     of this function or what it returns.'''
     Dict = {}
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
     for tweet in tweet_arr:
         if re.search('(next year|Next year|last year|Last year)', tweet) is None:
             if re.search('(host|hosts|hosting|hosted)', tweet) is not None:
@@ -234,7 +230,7 @@ def get_awards(year):
                      "red carpet", "story", "recipient", "braid", "tan", "appearance", "line", "seen", "hypocrisy",
                      "friend"]
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
 
     def helper(chunk_text, chunk_list, tweet):
         if chunk_list:
@@ -269,17 +265,17 @@ def get_awards(year):
         tweet = tweet.lower()
         if "best" in tweet or "award" in tweet:
             if any([word in tweet for word in search]):
-                t = sp(tweet)
-                chunks = [chunk for chunk in t.noun_chunks]
-                for i, chunk in enumerate(chunks):
-                    if "best" in chunk.text or "award" in chunk.text:
-                        if (chunk.root.head.text in search_words and chunk.root.dep_ == "dobj") \
-                                or (chunk.root.head.text in search_words2 and chunk.root.dep_ == "nsubj") \
-                                or (chunk.root.head.text == "for" and chunk.root.dep_ == "pobj"):
-                            award = helper(chunk.text, chunks[i + 1:], t)
-                            winner_tweets.append(tweet)
-                            if award:
-                                awards.append(award)
+                for t in sp.pipe(tweet, disable=["ner"]):
+                    chunks = [chunk for chunk in t.noun_chunks]
+                    for i, chunk in enumerate(chunks):
+                        if "best" in chunk.text or "award" in chunk.text:
+                            if (chunk.root.head.text in search_words and chunk.root.dep_ == "dobj") \
+                                    or (chunk.root.head.text in search_words2 and chunk.root.dep_ == "nsubj") \
+                                    or (chunk.root.head.text == "for" and chunk.root.dep_ == "pobj"):
+                                award = helper(chunk.text, chunks[i + 1:], t)
+                                winner_tweets.append(tweet)
+                                if award:
+                                    awards.append(award)
     # with open("myfile.txt", "w", encoding='utf-8') as f:
     for award in awards:
         if award:
@@ -366,10 +362,10 @@ def get_nominees(year):
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
               "GoldenGlobes%s" % str(year)]
     if not awards_split:
-        awards_split = handle_awards(year)
+        handle_awards(year)
 
     if not tweet_arr:
-        tweet_arr = clean_data(year)
+        clean_data(year)
 
     def clean_tweet(tweet):
         tweet = tweet.split()
@@ -387,9 +383,9 @@ def get_nominees(year):
         return all_nominees
 
     def helper(award, tweet):
-        t = sp(tweet)
-        for ent in t.ents:
-            if "actor" in award or "actress" in award or "director" in award or "award" in award:
+        if "actor" in award or "actress" in award or "director" in award or "award" in award:
+            t = sp(tweet)
+            for ent in t.ents:
                 if ent.label_ == "PERSON":
                     if ent.text.lower() not in ["golden globes", "goldenglobes", "goldenglobe", "goldenglobeawards",
                                                 "golden globe awards"]:
@@ -397,24 +393,24 @@ def get_nominees(year):
                             poss_nominees[award] = [ent.text]
                         else:
                             poss_nominees[award].append(ent.text)
-            else:
-                for word in search_words:
-                    if word in tweet:
-                        try:
-                            ind = tweet.index(word)
-                            nominee = helper2(clean_tweet(tweet[ind + len(word):]))
-                            if award not in poss_nominees:
-                                poss_nominees[award] = [nominee[0]]
-                                if len(nominee) > 1:
-                                    for nom in nominee:
-                                        if len(nom.split()) >= 1 and "Best" not in nom and "best" not in nom:
-                                            poss_nominees[award].append(nom)
-                            else:
+        else:
+            for word in search_words:
+                if word in tweet:
+                    try:
+                        ind = tweet.index(word)
+                        nominee = helper2(clean_tweet(tweet[ind + len(word):]))
+                        if award not in poss_nominees:
+                            poss_nominees[award] = [nominee[0]]
+                            if len(nominee) > 1:
                                 for nom in nominee:
-                                    poss_nominees[award].append(nom)
-                            break
-                        except IndexError:
-                            pass
+                                    if len(nom.split()) >= 1 and "Best" not in nom and "best" not in nom:
+                                        poss_nominees[award].append(nom)
+                        else:
+                            for nom in nominee:
+                                poss_nominees[award].append(nom)
+                        break
+                    except IndexError:
+                        pass
 
     for tweet in tweet_arr:
         if any([word in tweet for word in search]):
@@ -449,55 +445,43 @@ def get_winners(year):
     Do NOT change the name of this function or what it returns.'''
     poss_winners = {}
     winners = {}
-    search_words = ['wins', 'won', 'winning', "accepts", "accepted"]
+    search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
+              "taking", "took", 'gets', 'takes']
+    search_words = ['wins', 'won', 'winning', "accepts", "accepted", 'gets', 'takes']
     search_words2 = ["awarded", "goes", "went", "took", "taking", "going"]
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
               "GoldenGlobes%s" % str(year)]
 
-    if not tweet_arr:
-        tweet_arr = clean_data(year)
+    if not winner_tweets:
+        if not tweet_arr:
+            clean_data(year)
+        for tweet in tweet_arr:
+            if any([word in tweet for word in search]):
+                winner_tweets.append(tweet)
+
+    if not awards_split:
+        handle_awards(year)
 
     def helper(award, tweet):
-        t = sp(tweet)
-        for ent in t.ents:
-            if "actor" in award or "actress" in award or "director" in award or "award" in award:
+        if "actor" in award or "actress" in award or "director" in award or "award" in award:
+            # award is for person not movie/series
+            t = sp(tweet)
+            for ent in t.ents:
                 if ent.label_ == "PERSON":
+                    #print(ent.text)
                     if award not in poss_winners:
                         poss_winners[award] = [ent.text]
                     else:
                         poss_winners[award].append(ent.text)
-            else:
-                broken = False
-                for word in search_words:
-                    if word in tweet:
-                        ind = tweet.index(word)
-                        winner = tweet[:ind]
-                        t = sp(winner)
-                        for ent in t.ents:
-                            if ent.label_ == "PERSON" and "for" in tweet[ind:]:
-                                winner = tweet[tweet.index("for") + 3:]
-                        if award not in poss_winners:
-                            poss_winners[award] = [winner]
-                        else:
-                            poss_winners[award].append(winner)
-                        broken = True
-                        break
-                if not broken:
-                    for word in search_words2:
-                        if word in tweet:
-                            ind = tweet.index(word)
-                            winner = tweet[ind + len(word):]
-                            w = winner.split()
-                            remove = ["to", "the"]
-                            for word in remove:
-                                if word in w:
-                                    w.remove(word)
-                            winner = " ".join(w)
-                            if award not in poss_winners:
-                                poss_winners[award] = [winner]
-                            else:
-                                poss_winners[award].append(winner)
-                            break
+        else:
+            #come up with method to get movie name
+            t = sp(tweet)
+            for ent in t.ents:
+                if ent.label_ == "GPE" and ent.label is not "PERSON":
+                    if award not in poss_winners:
+                        poss_winners[award] = [ent.text]
+                    else:
+                        poss_winners[award].append(ent.text)
 
     for tweet in winner_tweets:
         for award in awards_split:
@@ -515,12 +499,13 @@ def get_winners(year):
                         helper(award[0], tweet)
 
     for award in poss_winners.keys():
+        print(most_frequent(poss_winners[award], 5))
         winners[award] = most_frequent(poss_winners[award], 1)[0][0]
+        print(winners[award])
 
     global_winners = winners
 
     return winners
-
 
 def get_presenters(year):
     '''Presenters is a dictionary with the hard coded award
@@ -540,7 +525,6 @@ def pre_ceremony():
     # Your code here
     print("Pre-ceremony processing complete.")
     return
-
 
 def read_data(year):
     file = 'gg' + str(year) + '.json'
@@ -581,12 +565,12 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-   # clean_data(2020)
-   # handle_awards(2020)
-   # get_awards(2020)
-   # pprint.pprint(get_winners(2020))
-   # pprint.pprint(get_nominees(2020))
-   # pprint.pprint(get_jokes(2020))
+    # clean_data(2020)
+    # handle_awards(2020)
+    # get_awards(2020)
+    pprint.pprint(get_winners(2020))
+    # pprint.pprint(get_nominees(2020))
+    # pprint.pprint(get_jokes(2020))
     return
 
 
