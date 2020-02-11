@@ -710,7 +710,7 @@ def json_data(year):
         award_dict['Nominees'] = nominees[award]
         award_dict['Winner'] = winners[award]
         json_return[award] = award_dict
-    return json_data
+    return json_return
 
 def human_readable(year):
     json_format = json_data(year)
@@ -735,7 +735,7 @@ def main():
     # clean_data(2020)
     # handle_awards(2020)
     # get_awards(2020)
-    pprint.pprint(get_winners(2020))
+    pprint.pprint(json_data(2020))
    # pprint.pprint(get_nominees(2020))
     #pprint.pprint(get_carpet(2020))
    # pprint.pprint(get_movie_titles(2020))
