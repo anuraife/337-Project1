@@ -488,11 +488,6 @@ def get_winners(year):
 
     print(worldMovies)
 
-    def clean_tweet(tweet, award):
-        t = tweet.lower.split()
-        tw = [word for word in tweet.split() if word[0].isupper() and word not in award]
-        return " ".join(tw)
-
     def helper(award, tweet):
         if "actor" in award or "actress" in award or "director" in award or "award" in award:
             t = sp(tweet)
@@ -502,7 +497,7 @@ def get_winners(year):
                         poss_winners[award] = [ent.text]
                     else:
                         poss_winners[award].append(ent.text)
-        else:
+        elif "motion picture" in award:
             for movie in worldMovies:
                 if re.search(movie, tweet):
                     if award not in poss_winners:
