@@ -7,6 +7,9 @@ import spacy
 import operator
 import string
 import time
+import requests
+from lxml import html
+from bs4 import BeautifulSoup
 
 sp = spacy.load('en_core_web_sm')
 nlp = spacy.load("en_core_web_md")
@@ -63,7 +66,27 @@ winner_tweets = []
 awards_split = []
 television_syn = ["television", "tv", "Television", "TV", ]
 motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
-global_winners = {}
+winners = {}
+worldMovies = []
+
+
+def get_movie_titles(year):
+    worldMovies = []
+    website_url = requests.get('https://en.wikipedia.org/wiki/List_of_American_films_of_%d' % (int(year) - 1)).text
+    soup = BeautifulSoup(website_url, 'lxml')
+    tables = soup.findAll('table', {'class': 'wikitable sortable'})
+    for table in tables:
+        for tr in table.find_all('tr'):
+            tds = tr.find_all('td')[:2]
+            if not tds:
+                continue
+            else:
+                try:
+                    title = [td.text.strip() for td in tds[0]]
+                except AttributeError:
+                    title = [td.text.strip() for td in tds[1]]
+            worldMovies.append(title)
+    return worldMovies
 
 
 def most_frequent(list, num):
@@ -97,45 +120,57 @@ def handle_awards(year):
 
 def get_carpet(year):
     search = ["carpet", "dressed", "looking", "outfit"]
-    good = ["best", "amazing", "goals", "beautiful", "my favorite"]
+    good = ["best", "amazing", "goals", "beautiful", "my favorite", "stunning", "hot"]
     bad = ["worst", "ugly", "horrible", "repulsive", "least favorite"]
     carpet_good = {}
     carpet_bad = {}
     controversial = {}
+    if not tweet_arr:
+        clean_data(year)
     for tweet in tweet_arr:
         if any([word in tweet for word in search]):
             if "best" in tweet and "worst" in tweet:
                 best = tweet.index("best")
                 worst = tweet.index("worst")
                 if best < worst:
-                    tweets.append(tweet[worst:])
+                    tweet_arr.append(tweet[worst+5:])
                     tweet = tweet[:worst]
                 else:
-                    tweets.append(tweet[best:])
+                    tweet_arr.append(tweet[best+4:])
                     tweet = tweet[:best]
             t = sp(tweet)
             for person in t.ents:
-                if person.label_ == "PERSON":
+                if person.label_ == "PERSON" and len(person.text) > 5:
+                    print(tweet, person.text)
+                    person = person.text.lower()
+                    people = person.split()
+                    list = []
+                    while len(people) > 2:
+                        list.append(people[0] + " " + people[1])
+                        people = people[2:]
                     if any([word in tweet for word in good]):
-                        if person.text.lower() not in carpet_good:
-                            carpet_good[person.text.lower()] = 1
-                        else:
-                            carpet_good[person.text.lower()] += 1
+                        for person in list:
+                            if person not in carpet_good:
+                                carpet_good[person] = 1
+                            else:
+                                carpet_good[person] += 1
                     if any([word in tweet for word in bad]):
-                        if person.text not in carpet_bad:
-                            carpet_bad[person.text.lower()] = 1
-                        else:
-                            carpet_bad[person.text.lower()] += 1
+                        for person in list:
+                            if person not in carpet_bad:
+                                carpet_bad[person] = 1
+                            else:
+                                carpet_bad[person] += 1
     for key in carpet_bad.keys():
         if key in carpet_good.keys():
             if key not in controversial:
                 controversial[key] = 1
             else:
                 controversial[key] += 1
-    best = sorted([[value, key] for (key, value) in carpet_good.items()])[-1]
-    worst = sorted([[value, key] for (key, value) in carpet_bad.items()])[-1]
+    print(carpet_good, carpet_bad, controversial)
+    best = sorted([[value, key] for (key, value) in carpet_good.items()])[-3:]
+    worst = sorted([[value, key] for (key, value) in carpet_bad.items()])[-3:]
     controversial = sorted([[value, key] for (key, value) in controversial.items()])[-1]
-    return {"best dressed": best[1], "worst dressed": worst[1], "most controversial": controversial[1]}
+    return {"best dressed": [b[1] for b in best], "worst dressed": [w[1] for w in worst], "most controversial": controversial[1]}
 
 
 def get_jokes(year):
@@ -366,10 +401,11 @@ def get_nominees(year):
     if not tweet_arr:
         clean_data(year)
 
-    def clean_tweet(tweet):
+    def clean_tweet(tweet, award):
         tweet = tweet.split()
-        t = [word for word in tweet if re.match(r'http\S+', word) is None
-             and (re.match(r'[A-Z]', word[0]) or word in [",", "and"]) and word not in remove]
+        t = [word for word in tweet.lower() if re.match(r'http\S+', word) is None
+             and (re.match(r'[A-Z]', word[0]) or word in [",", "and"]) and word not in remove
+             and word not in award]
         return " ".join(t)
 
     def helper2(poss_nominee):
@@ -397,12 +433,12 @@ def get_nominees(year):
                 if word in tweet:
                     try:
                         ind = tweet.index(word)
-                        nominee = helper2(clean_tweet(tweet[ind + len(word):]))
+                        nominee = helper2(clean_tweet(tweet[ind + len(word):], award))
                         if award not in poss_nominees:
                             poss_nominees[award] = [nominee[0]]
                             if len(nominee) > 1:
                                 for nom in nominee:
-                                    if len(nom.split()) >= 1 and "Best" not in nom and "best" not in nom:
+                                    if len(nom.split()) >= 1:
                                         poss_nominees[award].append(nom)
                         else:
                             for nom in nominee:
@@ -431,9 +467,11 @@ def get_nominees(year):
     for award in poss_nominees.keys():
         nominees[award] = [freq[0] for freq in most_frequent(poss_nominees[award], 4)]
 
-    if global_winners:
-        for award in global_winners.keys():
-            nominees[award].append(global_winners[award])
+    if winners:
+        for award in winners.keys():
+            if award in nominees:
+                if winners[award] in nominees[award]:
+                    nominees[award].remove(winners[award])
 
     return nominees
 
@@ -443,10 +481,9 @@ def get_winners(year):
     names as keys, and each entry containing a single string.
     Do NOT change the name of this function or what it returns.'''
     poss_winners = {}
-    winners = {}
     search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
               "taking", "took"]
-    search_words = ['wins', 'won', 'winning', "accepts", "accepted"]
+    search_words = ['wins', 'won', 'winning']
     search_words2 = ["awarded", "goes", "went", "took", "taking", "going"]
     remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
               "GoldenGlobes%s" % str(year)]
@@ -461,19 +498,32 @@ def get_winners(year):
     if not awards_split:
         handle_awards(year)
 
+    if not worldMovies:
+        get_movie_titles(year)
+
+    print(worldMovies)
+
+    def clean_tweet(tweet, award):
+        t = tweet.lower.split()
+        tw = [word for word in tweet.split() if word[0].isupper() and word not in award]
+        return " ".join(tw)
+
     def helper(award, tweet):
         if "actor" in award or "actress" in award or "director" in award or "award" in award:
             t = sp(tweet)
             for ent in t.ents:
                 if ent.label_ == "PERSON":
-                    print(ent.text)
                     if award not in poss_winners:
                         poss_winners[award] = [ent.text]
                     else:
                         poss_winners[award].append(ent.text)
         else:
-            #come up with method to get movie name
-            pass
+            for movie in worldMovies:
+                if re.search(movie, tweet):
+                    if award not in poss_winners:
+                        poss_winners[award] = [movie]
+                    else:
+                        poss_winners[award].append(movie)
 
     for tweet in winner_tweets:
         for award in awards_split:
@@ -492,8 +542,6 @@ def get_winners(year):
 
     for award in poss_winners.keys():
         winners[award] = most_frequent(poss_winners[award], 1)[0][0]
-
-    global_winners = winners
 
     return winners
 
@@ -664,9 +712,13 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    pprint.pprint(get_presenters(2020))
-    # pprint.pprint(get_nominees(2020))
-    # pprint.pprint(get_jokes(2020))
+    # clean_data(2020)
+    # handle_awards(2020)
+    # get_awards(2020)
+   # pprint.pprint(get_winners(2020))
+   # pprint.pprint(get_nominees(2020))
+    #pprint.pprint(get_carpet(2020))
+    pprint.pprint(get_movie_titles(2020))
     return
 
 
