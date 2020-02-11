@@ -84,9 +84,13 @@ def get_movie_titles(year):
             else:
                 try:
                     title = [td.text.strip() for td in tds[0]]
+                    worldMovies.append(title[0])
                 except AttributeError:
-                    title = [td.text.strip() for td in tds[1]]
-            worldMovies.append(title[0])
+                    try:
+                        title = [td.text.strip() for td in tds[1]]
+                        worldMovies.append(title[0])
+                    except AttributeError:
+                        pass
 
 
 def most_frequent(list, num):
