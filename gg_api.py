@@ -8,8 +8,9 @@ import operator
 import string
 import time
 import requests
-from lxml import html
-from bs4 import BeautifulSoup
+#from lxml import html
+#from bs4 import BeautifulSoup
+import sys
 
 sp = spacy.load('en_core_web_sm')
 nlp = spacy.load("en_core_web_md")
@@ -557,7 +558,7 @@ def get_presenters(year):
     # split_award.remove(word)
     GlobalDict = {}  # for award corresponding to presenters
     tweet_arr = read_data(year)
-    # tweet_arr = ["Priyanka Chopra and Nick Jonas at the 77th Annual Golden Globe Awards present the award for Best TV series for a musical or comedy"]
+    #tweet_arr = ["Robert Downey, Jr. presenting the Cecil B. DeMille to Jodie Foster at the #GoldenGlobes next"]
     # 'best television series - musical or comedy',
     my_test_awards = ['best motion picture - drama', 'best motion picture - musical or comedy',
                       'best performance by an actress in a motion picture - drama',
@@ -673,12 +674,13 @@ def get_presenters(year):
                         if "cecil" in award:
                             #print(tweet)
                             split_award.remove("award")
+                            tweet = tweet.lower()
                             if any([kw in tweet for kw in cecil_award]):
                             #sprint(tweet) #it's good here!
                             #print("hello")
                             #print(split_award)
                                 if all([kw in tweet for kw in split_award]) or all([kw in tweet for kw in extra_split]): #includes television
-                                    print(split_award) 
+                                    #print(split_award) 
                                 #if award == "best motion picture - drama":
                                     t = sp(tweet)
                                 #print(t)
@@ -689,7 +691,7 @@ def get_presenters(year):
                                             #print(person)
                                         #if award == "best motion picture - drama":
                                             #print(person)
-                                            if person.text.lower() not in ["goldenglobes", "golden globes", "lincolnmovie", "lincoln", "argo"]:
+                                            if person.text.lower() not in ["goldenglobes", "golden globes", "lincolnmovie", "lincoln", "argo", "jodie foster"]:
                                             #if award == "best motion picture - drama":
                                                 #print(person)
                                                 poss_host = person.text.lower()
@@ -805,7 +807,8 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    return human_readable(sys.argv)
+    return print(get_presenters(2015))#human_readable(sys.argv)
+
 
 
 if __name__ == '__main__':
