@@ -558,7 +558,7 @@ def get_presenters(year):
     # split_award.remove(word)
     GlobalDict = {}  # for award corresponding to presenters
     tweet_arr = read_data(year)
-    #tweet_arr = ["Robert Downey, Jr. presenting the Cecil B. DeMille to Jodie Foster at the #GoldenGlobes next"]
+    #tweet_arr = ["Will Ferrell, Kristen Wiig are making everyone laugh as they present the #GoldenGlobes award for Best Actress - Comedy or Musical."]
     # 'best television series - musical or comedy',
     my_test_awards = ['best motion picture - drama', 'best motion picture - musical or comedy',
                       'best performance by an actress in a motion picture - drama',
@@ -581,14 +581,13 @@ def get_presenters(year):
                       'best performance by an actress in a supporting role in a series, limited series or motion picture made for television',
                       'best performance by an actor in a supporting role in a series, limited series or motion picture made for television',
                       'cecil b. demille award']
-    #tweet_arr = ["Priyanka Chopra and Nick Jonas at the 77th Annual Golden Globe Awards present the award for Best TV series for a musical or comedy"]
-    #tweet_arr = ["TAYLOR SWIFT and AMY POEHLER presenting the Best Animated Motion Picture at the 77th Golden Globe Awards"]
+
     #'best television series - musical or comedy', 
     television_syn = ["television", "tv", "TV" "tv series", "TV series", "television series"]
-    motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
+    motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film", "Musical"]
     cecil_award = ["Cecil B. DeMille", "Cecil", "cecil"]
     presenters = {}
-    remove = ["or", "-", "by", "an", "in", "a"]
+    remove = ["or", "-", "by", "an", "in", "a", "performance"]
     #Dict = {}
     with open("myfile2.txt", "w", encoding='utf-8') as f: 
         for award in OFFICIAL_AWARDS_1819:
@@ -631,7 +630,7 @@ def get_presenters(year):
                                         #print(tweet)
                                         for person in t.ents:
                                             if person.label_ == "PERSON" or "ORG":
-                                                if person.text.lower() not in ["Golden Globes", "goldenglobes", "GoldenGlobes", "Golden globes", "golden globes", "deserved", "lincoln", "lincolnmovie", "ramy"]:
+                                                if person.text.lower() not in ["Golden Globes", "goldenglobes", "GoldenGlobes", "Golden globes", "golden globes", "deserved", "lincoln", "lincolnmovie", "ramy", "Ramy"]:
                                                     poss_host = person.text.lower()
                                                     if poss_host not in Dict:
                                                         Dict[poss_host] = 1
@@ -642,13 +641,20 @@ def get_presenters(year):
                         if "motion picture" in award:
                             split_award.remove("motion")
                             split_award.remove("picture")
+                            extra_split.remove("Motion")
+                            extra_split.remove("Picture")
+                            #print(tweet)
                             if any([kw in tweet for kw in motion_picture]):
                                 # sprint(tweet) #it's good here!
                                 # print("hello")
-                                # print(split_award)
-                                if all([kw in tweet for kw in split_award]) or all(
+                                #print(split_award)
+                                #print(extra_split)
+                                #print(tweet)
+                                if all([kw in tweet.lower() for kw in split_award]) or all(
                                         [kw in tweet for kw in extra_split]):  # includes television
-                                    # print(tweet)
+                                    #print(split_award)
+                                    #print(extra_split)
+                                    #print(tweet)
                                 #sprint(tweet) #it's good here!
                                 #print("hello")
                                 #print(split_award)
