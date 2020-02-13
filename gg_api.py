@@ -65,9 +65,11 @@ OFFICIAL_AWARDS_1819 = ['best motion picture - drama', 'best motion picture - mu
 tweet_arr = []
 winner_tweets = []
 awards_split = []
-television_syn = ["television", "tv", "Television", "TV", ]
-motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
+television_syn =  ["television", "tv", "Television", "TV", ]
+motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film", "Musical", "musical"]
+cecil_award = ["Cecil B. DeMille", "Cecil", "cecil", "cecil b demille", "cecille", "Cecille", "cecil b. demille"]
 winners = {}
+global_poss_nominees = {}
 worldMovies = []
 
 
@@ -99,7 +101,7 @@ def most_frequent(list, num):
 
 
 def handle_awards(year):
-    remove = ["or", "-", "by", "an", "in", "a"]
+    remove = ["or", "-", "by", "an", "in", "a", "performance"]
     if year > 2018:
         awards = OFFICIAL_AWARDS_1819
     else:
@@ -116,10 +118,7 @@ def handle_awards(year):
         if "motion picture" in award:
             split_award.remove("motion")
             split_award.remove("picture")
-        extra_split = []
-        for word in split_award:
-            extra_split.append(word[0].upper() + word[1:])
-        awards_split.append([award, split_award, extra_split])
+        awards_split.append([award, split_award])
 
 
 def get_carpet(year):
@@ -216,25 +215,22 @@ def get_hosts(year):
     '''Hosts is a list of one or more strings. Do NOT change the name
     of this function or what it returns.'''
     Dict = {}
+    search = ["host", "hosts", "hosting", "hosted"]
+    no_good = ["next year", "Next year", "last year", "Last year"]
     if not tweet_arr:
         clean_data(year)
     for tweet in tweet_arr:
-        if re.search('(next year|Next year|last year|Last year)', tweet) is None:
-            if re.search('(host|hosts|hosting|hosted)', tweet) is not None:
+        if all([word not in tweet for word in no_good]):
+            if any([word in tweet for word in search]):
                 t = sp(tweet)
                 for person in t.ents:
                     if person.label_ == "PERSON":
-                        if person.text not in ["Golden Globes", "goldenglobes", "GoldenGlobes", "Golden globes",
-                                               "golden globes", "golden globes %s" % str(year),
-                                               "gg%s" % str(year), "goldenglobes%s" % str(year),
-                                               "Golden Globes %s" % str(year), "GoldenGlobes%s" % str(year)]:
-                            poss_host = person.text.lower()
-                            if poss_host not in Dict:
-                                Dict[poss_host] = 1
-                            else:
-                                Dict[poss_host] += 1
-    sorted_dict = sorted([[value, key] for (key, value) in Dict.items()])[
-                  -5:]  # this line changes dictionary into array format and orders into ascending order
+                        poss_host = person.text.lower()
+                        if poss_host not in Dict:
+                            Dict[poss_host] = 1
+                        else:
+                            Dict[poss_host] += 1
+    sorted_dict = sorted([[value, key] for (key, value) in Dict.items()])[-5:]
     final_hosts = sorted_dict.copy()
     for i in sorted_dict[:-1]:
         try:
@@ -260,7 +256,6 @@ def get_hosts(year):
 def get_awards(year):
     """Awards is a list of strings. Do NOT change the name
     of this function or what it returns."""
-    first = time.time()
     awards = []
     search_words = ['wins', 'won', 'winning', "accepts", "accepted"]
     search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
@@ -331,7 +326,7 @@ def get_awards(year):
                                 winner_tweets.append(tweet)
                                 if award:
                                     awards.append(award)
-    # with open("myfile.txt", "w", encoding='utf-8') as f:
+
     for award in awards:
         if award:
             if len(award.split()) > 3 and not any([word in award for word in exclude_words]):
@@ -343,12 +338,9 @@ def get_awards(year):
                         award_words.remove(word)
                 if len(award_words) > 3:
                     final.append(" ".join(award_words))
-                    # f.write(award)
-                    # f.write("\n")
-    # f.close()
+
     banned = []
     approved = ["or", "by", "in", "a", "an"]
-    # with open("myfile2.txt", "w", encoding="utf-8") as f:
     for award in final:
         broken = False
         if re.search('(^best|award$)', award):
@@ -410,8 +402,7 @@ def get_nominees(year):
     names as keys, and each entry a list of strings. Do NOT change
     the name of this function or what it returns.'''
     search = ["beating", "beats out", "beating", "beats", "beat out", "beat", "nominated", "nominee", "compete",
-              "competing"]
-    search_words = ["beating", "beats out", "beats", "beat out", "beat", "compete", "competing"]
+              "competing", "up for"]
     poss_nominees = {}
     nominees = {}
     if not awards_split:
@@ -424,17 +415,26 @@ def get_nominees(year):
         get_movie_titles(year)
 
     def helper(award, tweet):
-        if "actor" in award or "actress" in award or "director" in award or "award" in award:
+        if "actor" in award or "actress" in award or "director" in award or "cecil" in award:
             t = sp(tweet)
             for ent in t.ents:
-                if ent.label_ == "PERSON":
-                    if award not in nominees:
+                if ent.label_ == "PERSON" and ent.text not in cecil_award:
+                    if award not in poss_nominees:
                         poss_nominees[award] = [ent.text.lower()]
                     else:
-                        poss_nominees[award].append(ent.text)
+                        person_name = ent.text.lower().split()
+                        broken = False
+                        prev_people = [person.split() for person in poss_nominees[award]]
+                        for person in prev_people:
+                            if all([word in person for word in person_name]):
+                                poss_nominees[award].append(" ".join(person))
+                                broken = True
+                                break
+                        if not broken:
+                            poss_nominees[award].append(ent.text.lower())
         elif "motion picture" in award:
             for movie in worldMovies:
-                if re.search(movie.lower(), tweet.lower()):
+                if re.search(movie, tweet):
                     if award not in poss_nominees:
                         poss_nominees[award] = [movie.lower()]
                     else:
@@ -442,11 +442,11 @@ def get_nominees(year):
         else:
             t = sp(tweet)
             for ent in t.ents:
-                if ent.label_ == "GPE":
-                    if award not in poss_winners:
-                        poss_winners[award] = [ent.text.lower()]
+                if ent.label_ == "GPE" or ent.label_ == "WORK_OF_ART":
+                    if award not in poss_nominees:
+                        poss_nominees[award] = [ent.text.lower()]
                     else:
-                        poss_winners[award].append(ent.text.lower())
+                        poss_nominees[award].append(ent.text.lower())
 
     for tweet in tweet_arr:
         if any([word in tweet for word in search]):
@@ -454,19 +454,32 @@ def get_nominees(year):
                 if "television" in award and "motion picture" in award[0]:
                     if any([word in tweet for word in television_syn]) and any(
                             [word in tweet for word in motion_picture]):
-                        if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                        if all([word in tweet.lower() for word in award[1]]):
                             helper(award[0], tweet)
                 elif "television" in award[0]:
                     if any([word in tweet for word in television_syn]):
-                        if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                        if all([word in tweet.lower() for word in award[1]]):
                             helper(award[0], tweet)
                 elif "motion picture" in award[0]:
                     if any([word in tweet for word in motion_picture]):
-                        if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                        if all([word in tweet.lower() for word in award[1]]):
                             helper(award[0], tweet)
+                elif "cecil" in award[0]:
+                    if any([kw in tweet.lower() for kw in cecil_award]):
+                        helper(award[0], tweet)
 
     for award in poss_nominees.keys():
         nominees[award] = [freq[0] for freq in most_frequent(poss_nominees[award], 4)]
+
+    if global_poss_nominees:
+        for award in global_poss_nominees.keys():
+            if award not in nominees:
+                nominees[award] = global_poss_nominees[award]
+            elif len(nominees[award]) < 4:
+                global_poss_nominees[award].reverse()
+                for nom in global_poss_nominees[award]:
+                    if nom not in nominees[award] and len(nominees[award]) < 4:
+                        nominees[award].append(nom)
 
     if winners:
         for award in winners.keys():
@@ -485,10 +498,6 @@ def get_winners(year):
     search = ['wins', 'won', 'winning', 'awarded to', 'goes to', 'went to', 'nominated for', "accepts", "accepted",
               "taking", "took", 'gets', 'takes', 'got', 'congratulations', 'congrats', 'nominee', 'up for', 'going to',
               'win', 'thanks', 'winner', 'going']
-    search_words = ['wins', 'won', 'winning']
-    search_words2 = ["awarded", "goes", "went", "took", "taking", "going"]
-    remove = ["Golden Globes", "GoldenGlobes", "Golden globes", "Golden Globes %s" % str(year),
-              "GoldenGlobes%s" % str(year)]
 
     if not winner_tweets:
         if not tweet_arr:
@@ -504,17 +513,29 @@ def get_winners(year):
         get_movie_titles(year)
 
     def helper(award, tweet):
-        if "actor" in award or "actress" in award or "director" in award or "award" in award:
+        if "actor" in award or "actress" in award or "director" in award or "cecil" in award:
             t = sp(tweet)
             for ent in t.ents:
-                if ent.label_ == "PERSON":
+                if ent.label_ == "PERSON" and ent.text not in cecil_award:
                     if award not in poss_winners:
                         poss_winners[award] = [ent.text.lower()]
                     else:
-                        poss_winners[award].append(ent.text.lower())
+                        person_name = ent.text.lower().split()
+                        if len(person_name) < 2:
+                            broken = False
+                            prev_people = [person.split() for person in poss_winners[award]]
+                            for person in prev_people:
+                                if all([word in person for word in person_name]):
+                                    poss_winners[award].append(" ".join(person))
+                                    broken = True
+                                    break
+                            if not broken:
+                                poss_winners[award].append(ent.text.lower())
+                        else:
+                            poss_winners[award].append(ent.text.lower())
         elif "motion picture" in award:
             for movie in worldMovies:
-                if re.search(movie.lower(), tweet.lower()):
+                if re.search(movie, tweet):
                     if award not in poss_winners:
                         poss_winners[award] = [movie.lower()]
                     else:
@@ -522,7 +543,7 @@ def get_winners(year):
         else:
             t = sp(tweet)
             for ent in t.ents:
-                if ent.label_ == "GPE":
+                if ent.label_ == "GPE" or ent.label_ == "WORK_OF_ART":
                     if award not in poss_winners:
                         poss_winners[award] = [ent.text.lower()]
                     else:
@@ -532,19 +553,23 @@ def get_winners(year):
         for award in awards_split:
             if "television" in award and "motion picture" in award[0]:
                 if any([word in tweet for word in television_syn]) and any([word in tweet for word in motion_picture]):
-                    if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                    if all([word in tweet.lower() for word in award[1]]):
                         helper(award[0], tweet)
             elif "television" in award[0]:
                 if any([word in tweet for word in television_syn]):
-                    if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                    if all([word in tweet.lower() for word in award[1]]):
                         helper(award[0], tweet)
             elif "motion picture" in award[0]:
                 if any([word in tweet for word in motion_picture]):
-                    if all([word in tweet for word in award[1]]) or all([word in tweet for word in award[2]]):
+                    if all([word in tweet.lower() for word in award[1]]):
                         helper(award[0], tweet)
+            elif "cecil" in award[0]:
+                if any([kw in tweet.lower() for kw in cecil_award]):
+                    helper(award[0], tweet)
 
     for award in poss_winners.keys():
         winners[award] = most_frequent(poss_winners[award], 1)[0][0]
+        global_poss_nominees[award] = [freq[0] for freq in most_frequent(poss_winners[award], 4)]
 
     return winners
 
@@ -553,125 +578,61 @@ def get_presenters(year):
     '''Presenters is a dictionary with the hard coded award
     names as keys, and each entry a list of strings. Do NOT change the
     name of this function or what it returns.'''
-    # how to let TV stand for television?
-    # in host-> one dict w/ possible hosts and count
-    # for you-> for each award create a dict with list of possible presenters and counts
-    # Line 7942 in 2020 json-> Jason Momoa, Zoë Kravitz
-    # Your code here
-    # if word == "motion" or "picture":
-    # split_award.remove(word)
-    GlobalDict = {}  # for award corresponding to presenters
-    tweet_arr = read_data(year)
-    # tweet_arr = ["Priyanka Chopra and Nick Jonas at the 77th Annual Golden Globe Awards present the award for Best TV series for a musical or comedy"]
-    # 'best television series - musical or comedy',
-    my_test_awards = ['best motion picture - drama', 'best motion picture - musical or comedy',
-                      'best performance by an actress in a motion picture - drama',
-                      'best performance by an actor in a motion picture - drama',
-                      'best performance by an actress in a motion picture - musical or comedy',
-                      'best performance by an actor in a motion picture - musical or comedy',
-                      'best performance by an actress in a supporting role in any motion picture',
-                      'best performance by an actor in a supporting role in any motion picture',
-                      'best director - motion picture', 'best screenplay - motion picture',
-                      'best motion picture - animated', 'best motion picture - foreign language',
-                      'best original score - motion picture', 'best original song - motion picture',
-                      'best television series - drama', 'best television series - musical or comedy',
-                      'best television limited series or motion picture made for television',
-                      'best performance by an actress in a limited series or a motion picture made for television',
-                      'best performance by an actor in a limited series or a motion picture made for television',
-                      'best performance by an actress in a television series - drama',
-                      'best performance by an actor in a television series - drama',
-                      'best performance by an actress in a television series - musical or comedy',
-                      'best performance by an actor in a television series - musical or comedy',
-                      'best performance by an actress in a supporting role in a series, limited series or motion picture made for television',
-                      'best performance by an actor in a supporting role in a series, limited series or motion picture made for television',
-                      'cecil b. demille award']
-    television_syn = ["television", "tv", "TV" "tv series", "TV series", "television series"]
-    motion_picture = ["motion", "picture,", "movie", "film", "Motion", "Picture", "Movie", "Film"]
+
     presenters = {}
-    remove = ["or", "-", "by", "an", "in", "a"]
-    # Dict = {}
-    with open("myfile2.txt", "w", encoding='utf-8') as f:
-        for award in my_test_awards:
-            Dict = {}
-            for tweet in tweet_arr:  # tweet in tweet_arr
-                # check any (tv, television series) before all
-                # tweet = tweet.lower()
-                split_award = award.split()  # check for this array if television is in this array-> then add other words
-                if "best" in split_award:
-                    split_award.remove("best")
-                for word in remove:
-                    try:
-                        split_award.remove(word)
-                    except ValueError:
-                        pass
-                # print(split_award)
-                extra_split = []
-                for word in split_award:
-                    extra_split.append(word[0].upper() + word[1:])
-                if re.search('(next year|last year|representation)', tweet) is None:
-                    if re.search('(present|presented|gave the award|introduce|give|read)', tweet) is not None:
-                        # print(tweet)
-                        f.write(tweet)
-                        f.write("\n")
-                        # for word in split_award:
-                        # if word == "television":
-                        if "television" in award:
-                            split_award.remove("television")
-                            extra_split.remove("Television")
-                            # print(tweet)
-                            if any([kw in tweet for kw in television_syn]):
-                                # print(split_award)
-                                # print(extra_split)
-                                # print(tweet)
-                                if "best" in tweet or "Best" in tweet:
-                                    if all([kw in tweet for kw in split_award]) or all(
-                                            [kw in tweet for kw in extra_split]):  # includes television
-                                        # print(tweet)
-                                        t = sp(tweet)
-                                        for person in t.ents:
-                                            if person.label_ == "PERSON":
-                                                if person.text not in ["Golden Globes", "goldenglobes", "GoldenGlobes",
-                                                                       "Golden globes", "golden globes"]:
-                                                    poss_host = person.text.lower()
-                                                    if poss_host not in Dict:
-                                                        Dict[poss_host] = 1
-                                                    else:
-                                                        Dict[poss_host] += 1
-                        # for word in split_award:
-                        # if word == "motion" or word == "picture":
-                        if "motion picture" in award:
-                            split_award.remove("motion")
-                            split_award.remove("picture")
-                            if any([kw in tweet for kw in motion_picture]):
-                                # sprint(tweet) #it's good here!
-                                # print("hello")
-                                # print(split_award)
-                                if all([kw in tweet for kw in split_award]) or all(
-                                        [kw in tweet for kw in extra_split]):  # includes television
-                                    # print(tweet)
-                                    t = sp(tweet)
-                                    # print(t)
-                                    for person in t.ents:
-                                        # print(person)
-                                        if person.label_ == "PERSON":
-                                            if person.text not in ["Golden Globes", "goldenglobes", "GoldenGlobes",
-                                                                   "Golden globes", "golden globes"]:
-                                                poss_host = person.text.lower()
-                                                if poss_host not in Dict:
-                                                    Dict[poss_host] = 1
-                                                else:
-                                                    Dict[poss_host] += 1
+    no_good = ["next year", "Next year", "Last year", "last year", "representation", "represent", "represented"]
+    search = ["present", "presented", "gave the award", "introduce", "give", "read",  "presenting",
+              "giving the award", "handing the award", "introducing"]
+    tv_syn = ["television", "tv", "TV" "tv series", "TV series", "television series"]
 
-                sorted_dict = sorted([key for (key, value) in Dict.items()])[-2:]
-                # if award == "best television series - musical or comedy":
-                # print(Dict)
-            # print(Dict)
+    if not tweet_arr:
+        clean_data(year)
 
-    GlobalDict[award] = sorted_dict
-    presenters = GlobalDict
-    f.close()
+    if not awards_split:
+        handle_awards(year)
 
-    return GlobalDict
+    def helper(award, tweet):
+        t = sp(tweet)
+        for person in t.ents:
+            if person.label_ == "PERSON" and person.text not in cecil_award:
+                poss_host = person.text.lower()
+                if poss_host not in Dict:
+                    Dict[poss_host] = 1
+                else:
+                    Dict[poss_host] += 1
+        sorted_dict = sorted([[value, key] for (key, value) in Dict.items()])[-2:]
+        presenters[award] = [person[1] for person in sorted_dict]
+
+    for award in awards_split:
+        Dict = {}
+        for tweet in tweet_arr:  # tweet in tweet_arr
+            if "best" in awards_split[1]:
+                awards_split[1].remove("best")
+            if all([word not in tweet for word in no_good]) and ("best" in tweet or "Best" in tweet):
+                if any([word in tweet for word in search]):
+                    if "television" in award[0] and "motion picture" in award[0]:
+                        if any([word in tweet for word in tv_syn]) and any(
+                                [word in tweet for word in motion_picture]):
+                            if all([word in tweet.lower() for word in award[1]]):
+                                helper(award[0], tweet)
+                    elif "television" in award[0]:
+                        if any([kw in tweet for kw in tv_syn]):
+                            if all([kw in tweet.lower() for kw in award[1]]):
+                                helper(award[0], tweet)
+                    elif "motion picture" in award[0]:
+                        if any([kw in tweet for kw in motion_picture]):
+                            if all([kw in tweet.lower() for kw in award[1]]):
+                                helper(award[0], tweet)
+                    elif "cecil" in award[0]:
+                        if any([kw in tweet.lower() for kw in cecil_award]):
+                            helper(award[0], tweet.lower())
+
+    for award in winners.keys():
+        if award in presenters.keys():
+            if winners[award] in presenters[award]:
+                presenters[award].remove(winners[award])
+
+    return presenters
 
 
 def pre_ceremony():
@@ -708,10 +669,9 @@ def clean_data(year):
                   "globes'", "globe's", "hbo", "hbo's"]
     for tweet in tweets:
         tokens = tweet.split()
-        tokens = [w for w in tokens]
         table = str.maketrans('', '', string.punctuation)
         stripped = [w.translate(table) for w in tokens]
-        words = [w for w in stripped if not w in stop_words and re.match(r'http\S+', w) is None]
+        words = [w for w in stripped if w not in stop_words and re.match(r'http\S+', w) is None]
         s = " "
         tweet_arr.append(s.join(words))
     return
@@ -732,7 +692,7 @@ def json_data(year):
         award_dict['Presenters'] = presenters[award]
         award_dict['Nominees'] = nominees[award]
         award_dict['Winner'] = winners[award]
-        json_return[award] = award_dict
+        json_return[award[0]] = award_dict
     return json_return
 
 
@@ -741,8 +701,8 @@ def human_readable(yr):
         json_format = json_data(year)
         print('Host: ' + json_format['Host'])
         for award in awards_split:
-            award_results = json_format[award]
-            print('Award: ' + award)
+            award_results = json_format[award[0]]
+            print('Award: ' + award[0])
             print('Presenters: ' + award_results['Presenters'])
             print('Nominees: ' + award_results['Nominees'])
             print('Winner: ' + award_results['Winner'])
