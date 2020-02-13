@@ -8,8 +8,8 @@ import operator
 import string
 import time
 import requests
-#from lxml import html
-#from bs4 import BeautifulSoup
+from lxml import html
+from bs4 import BeautifulSoup
 import sys
 
 sp = spacy.load('en_core_web_sm')
@@ -807,7 +807,7 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    return print(get_presenters(2015))#human_readable(sys.argv)
+    return human_readable(sys.argv)
 
 
 
