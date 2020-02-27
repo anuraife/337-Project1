@@ -315,17 +315,17 @@ def get_awards(year):
         tweet = tweet.lower()
         if "best" in tweet or "award" in tweet:
             if any([word in tweet for word in search]):
-                for t in sp.pipe(tweet, disable=["ner"]):
-                    chunks = [chunk for chunk in t.noun_chunks]
-                    for i, chunk in enumerate(chunks):
-                        if "best" in chunk.text or "award" in chunk.text:
-                            if (chunk.root.head.text in search_words and chunk.root.dep_ == "dobj") \
-                                    or (chunk.root.head.text in search_words2 and chunk.root.dep_ == "nsubj") \
-                                    or (chunk.root.head.text == "for" and chunk.root.dep_ == "pobj"):
-                                award = helper(chunk.text, chunks[i + 1:], t)
-                                winner_tweets.append(tweet)
-                                if award:
-                                    awards.append(award)
+                t = sp(tweet)
+                chunks = [chunk for chunk in t.noun_chunks]
+                for i, chunk in enumerate(chunks):
+                    if "best" in chunk.text or "award" in chunk.text:
+                        if (chunk.root.head.text in search_words and chunk.root.dep_ == "dobj") \
+                                or (chunk.root.head.text in search_words2 and chunk.root.dep_ == "nsubj") \
+                                or (chunk.root.head.text == "for" and chunk.root.dep_ == "pobj"):
+                            award = helper(chunk.text, chunks[i + 1:], t)
+                            winner_tweets.append(tweet)
+                            if award:
+                                awards.append(award)
 
     for award in awards:
         if award:
