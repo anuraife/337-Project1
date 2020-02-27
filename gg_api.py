@@ -102,7 +102,7 @@ def most_frequent(list, num):
 
 def handle_awards(year):
     remove = ["or", "-", "by", "an", "in", "a", "performance"]
-    if year > 2018:
+    if int(year) > 2018:
         awards = OFFICIAL_AWARDS_1819
     else:
         awards = OFFICIAL_AWARDS_1315
@@ -490,7 +490,7 @@ def get_nominees(year):
     return nominees
 
 
-def get_winners(year):
+def get_winner(year):
     '''Winners is a dictionary with the hard coded award
     names as keys, and each entry containing a single string.
     Do NOT change the name of this function or what it returns.'''
@@ -646,7 +646,7 @@ def pre_ceremony():
 
 
 def read_data(year):
-    file = 'gg' + str(year) + '.json'
+    file = 'gg' + year + '.json'
     try:
         with open(file, 'r') as f:
             tweets = json.load(f)
@@ -681,35 +681,46 @@ def json_data(year):
     json_return = {}
     clean_data(year)
     handle_awards(year)
-    get_awards(year)
     hosts = get_hosts(year)
     json_return['Host'] = hosts
-    winners = get_winners(year)
+    winners = get_winner(year)
     nominees = get_nominees(year)
     presenters = get_presenters(year)
     for award in awards_split:
         award_dict = {}
-        award_dict['Presenters'] = presenters[award]
-        award_dict['Nominees'] = nominees[award]
-        award_dict['Winner'] = winners[award]
+        if award[0] in presenters:
+            award_dict['Presenters'] = presenters[award[0]]
+        else:
+            award_dict['Presenters'] = "None found"
+        if award[0] in nominees:
+            award_dict['Nominees'] = nominees[award[0]]
+        else:
+            award_dict['Nominees'] = "None found"
+        if award[0] in winners:
+            award_dict['Winner'] = winners[award[0]]
+        else:
+            award_dict['Winner'] = "None found"
         json_return[award[0]] = award_dict
     return json_return
 
 
-def human_readable(yr):
-    for year in [2013, 2015, yr]:
-        json_format = json_data(year)
-        print('Host: ' + json_format['Host'])
-        for award in awards_split:
-            award_results = json_format[award[0]]
-            print('Award: ' + award[0])
-            print('Presenters: ' + award_results['Presenters'])
-            print('Nominees: ' + award_results['Nominees'])
-            print('Winner: ' + award_results['Winner'])
-        dressed = get_carpet(year)
-        print('Best dressed: ' + dressed['best dressed'])
-        print('Worst dressed: ' + dressed['worst dressed'])
-        print('Most controversial: ' + dressed['most controversial'])
+def human_readable(year):
+    json_format = json_data(year)
+    awards = get_awards(year)
+    print("Awards found: ")
+    for award in awards:
+        print(award)
+    print('Host: ',  json_format['Host'])
+    for award in awards_split:
+        award_results = json_format[award[0]]
+        print('Award: ', award[0])
+        print('Presenters: ', award_results['Presenters'])
+        print('Nominees: ', award_results['Nominees'])
+        print('Winner: ',  award_results['Winner'])
+    dressed = get_carpet(year)
+    print('Best dressed: ', dressed['best dressed'])
+    print('Worst dressed: ', dressed['worst dressed'])
+    print('Most controversial:', dressed['most controversial'])
 
 
 def main():
@@ -718,7 +729,7 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    return human_readable(sys.argv)
+    return human_readable(sys.argv[1])
 
 
 if __name__ == '__main__':
