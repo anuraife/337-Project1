@@ -487,6 +487,10 @@ def get_nominees(year):
                 if winners[award] in nominees[award]:
                     nominees[award].remove(winners[award])
 
+    for award in awards_split:
+        if award[0] not in nominees:
+            nominees[award[0]] = []
+
     return nominees
 
 
@@ -571,6 +575,10 @@ def get_winner(year):
         winners[award] = most_frequent(poss_winners[award], 1)[0][0]
         global_poss_nominees[award] = [freq[0] for freq in most_frequent(poss_winners[award], 4)]
 
+    for award in awards_split:
+        if award[0] not in winners:
+            winners[award[0]] = []
+
     return winners
 
 
@@ -632,6 +640,10 @@ def get_presenters(year):
             if winners[award] in presenters[award]:
                 presenters[award].remove(winners[award])
 
+    for award in awards_split:
+        if award[0] not in presenters:
+            presenters[award[0]] = []
+
     return presenters
 
 
@@ -646,7 +658,7 @@ def pre_ceremony():
 
 
 def read_data(year):
-    file = 'gg' + year + '.json'
+    file = 'gg' + str(year) + '.json'
     try:
         with open(file, 'r') as f:
             tweets = json.load(f)
